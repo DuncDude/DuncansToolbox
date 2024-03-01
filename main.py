@@ -5,7 +5,7 @@ from uat_prod_operations import UATProdOperations
 
 def main():
     root = tk.Tk()
-    root.title("Git Operations")
+    root.title("Duncan's ToolBox")
 
     notebook = ttk.Notebook(root)
 

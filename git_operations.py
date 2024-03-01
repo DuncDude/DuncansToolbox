@@ -1,9 +1,9 @@
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, ttk
+from PIL import Image, ImageTk
 import subprocess
 import threading
 import os
-import shutil
 
 class GitOperations:
     def __init__(self, notebook):
@@ -11,65 +11,90 @@ class GitOperations:
 
     def run_clone_command(self):
         try:
-            # Determine the selected repository from the dropdown menu
             selected_repo = self.repo_var.get()
-
-            # Map the selected repository to the corresponding GitHub URL
-            repo_urls = {
-                "UI-Core": "https://github.com/DarkFlippers/unleashed-firmware",
-                "Backend-Core": "https://github.com/DarkFlippers/Multi_Fuzzer"
-            }
-
-            # Get the GitHub URL for the selected repository
-            repo_url = repo_urls.get(selected_repo)
-
-            # If a repository URL is found, start a new thread for git clone
-            if repo_url:
-                threading.Thread(target=self.perform_git_clone, args=(repo_url, selected_repo), daemon=True).start()
-            else:
-                messagebox.showerror("Error", "Invalid repository selection.")
+            threading.Thread(target=self.perform_git_clone, args=(selected_repo,), daemon=True).start()
         except Exception as e:
-            messagebox.showerror("Error", f"Command failed with error: {e}")
+            messagebox.showerror("Error: Repo may already be in the working directory")
+            #messagebox.showerror("Error", f"Command failed with error: {e}")
 
-    def perform_git_clone(self, repo_url, repo_name):
+    def perform_git_clone(self, repo_name):
         try:
             repo_directory = repo_name.lower()
 
-            # Remove the existing directory if it exists
             if os.path.exists(repo_directory):
-                shutil.rmtree(repo_directory, ignore_errors=True)
+                messagebox.showinfo("Info", f"Repository '{repo_name}' already exists. Skipping clone.")
+            else:
+                repo_url = self.repo_urls.get(repo_name)
 
-            # Clone the repository
-            result = subprocess.check_output(["git", "clone", repo_url], text=True)
-
-            # Display the output in the Text widget
-            self.set_text(f"Cloned repository '{repo_name}' successfully:\n{result}")
+                if repo_url:
+                    self.append_text(f"Cloning repository '{repo_name}'...")
+                    subprocess.run(["git", "clone", repo_url], check=True, capture_output=True, text=True)
+                    self.append_text(f"Cloned repository '{repo_name}' successfully.")
+                else:
+                    messagebox.showerror("Error", "Invalid repository selection.")
         except subprocess.CalledProcessError as e:
-            messagebox.showerror("Error", f"Command failed with error: {e}")
+            self.append_text("Error: Repo may already be in the working directory")
+            #self.append_text(f"Command failed with error: {e}")
         except Exception as e:
-            messagebox.showerror("Error", f"An unexpected error occurred: {e}")
+            self.append_text(f"An unexpected error occurred: {e}")
 
-    def set_text(self, message):
-        # Clear previous output and set the new message
-        self.text_widget.delete(1.0, tk.END)
-        self.text_widget.insert(tk.END, message)
+    def refresh_repo_options(self, *args):
+        repo_options = list(self.repo_urls.keys())
+
+        if repo_options:
+            self.repo_var.set(repo_options[0])
+            menu = self.repo_menu["menu"]
+            menu.delete(0, "end")
+            for repo in repo_options:
+                menu.add_command(label=repo, command=tk._setit(self.repo_var, repo))
+        else:
+            self.repo_var.set("No repositories found")
+
+    def append_text(self, message):
+        current_text = text_widget.get("1.0", tk.END)
+        updated_text = current_text + message + "\n"
+        text_widget.delete("1.0", tk.END)
+        text_widget.insert(tk.END, updated_text)
 
     def setup_git_repos_tab(self):
         git_frame = tk.Frame(self.notebook)
 
-        # Static text above the dropdown menu
-        static_text = tk.Label(git_frame, text="Select a repository to clone. If the repository is already cloned, you will get an error.")
-        static_text.pack(side=tk.TOP, pady=10)
+        # Create a frame for dropdown and image
+        dropdown_frame = tk.Frame(git_frame)
+        dropdown_frame.pack(side=tk.TOP, pady=10)
 
-        # Create a dropdown menu to choose between "UI-Core" and "Backend-Core"
+        # Load and display the image
+        image_path = "hackers.png"  # Assuming the image is in the working directory
+        image = Image.open(image_path)
+        image = image.resize((50, 50), Image.ANTIALIAS)  # Resize the image as needed
+        photo = ImageTk.PhotoImage(image)
+
+        image_label = tk.Label(dropdown_frame, image=photo)
+        image_label.image = photo  # Keep a reference to the image to prevent it from being garbage collected
+        image_label.grid(row=0, column=0, padx=10)
+
+        # Static text above the combobox
+        static_label = tk.Label(dropdown_frame, text="Select a repository to clone", font=('Helvetica', 10, 'bold'))
+        static_label.grid(row=0, column=1, pady=5)
+
+        # Create a Combobox to choose between repositories
+        working_directory = os.getcwd()
         self.repo_var = tk.StringVar()
-        self.repo_var.set("UI-Core")  # Default repository
-        repo_menu = tk.OptionMenu(git_frame, self.repo_var, "UI-Core", "Backend-Core")
-        repo_menu.pack(side=tk.TOP, pady=10)
+        self.repo_urls = {
+            "UI-Core": "https://github.com/DarkFlippers/unleashed-firmware",
+            "Backend-Core": "https://github.com/DarkFlippers/Multi_Fuzzer"
+        }
+        repo_options = list(self.repo_urls.keys())
+        self.repo_var.set(repo_options[0] if repo_options else "No repositories found")
+
+        # Use ttk.Combobox instead of OptionMenu
+        repo_combobox = ttk.Combobox(dropdown_frame, textvariable=self.repo_var, values=repo_options, state="readonly")
+        repo_combobox.grid(row=1, column=0, columnspan=2, pady=10, padx=10)
 
         # Create a Text widget to display the output
-        self.text_widget = tk.Text(git_frame, height=10, width=60)
-        self.text_widget.pack(side=tk.TOP, pady=20)
+        global text_widget
+        text_widget = tk.Text(git_frame, height=30, width=60)
+        text_widget.pack(side=tk.TOP, pady=20)
 
         # Create a Button to run the git clone command
         clone_button = tk.Button(git_frame, text="Run git clone", command=self.run_clone_command)
