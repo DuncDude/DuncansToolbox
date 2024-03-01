@@ -9,7 +9,7 @@ class UATProdOperations:
     def __init__(self, notebook):
         self.notebook = notebook
 
-    def run_push_command(self):
+    def run_push_command(self, target):
         try:
             selected_folder = self.folder_var.get()
             self.append_text(f"*********** Starting: {selected_folder}*********** ")
@@ -110,17 +110,6 @@ class UATProdOperations:
         self.folder_menu = ttk.Combobox(dropdown_frame, textvariable=self.folder_var, values=folder_options, state="readonly")
         self.folder_menu.grid(row=1, column=0, columnspan=2, pady=10, padx=10)
 
-        # Create a frame for radio buttons
-        radio_frame = tk.Frame(push_frame)
-        radio_frame.pack(side=tk.TOP, pady=10)
-
-        # Radio buttons
-        self.push_option_var = tk.StringVar()
-        force_button = tk.Radiobutton(radio_frame, text="Force", variable=self.push_option_var, value="Force")
-        force_button.grid(row=0, column=0, padx=10)
-        fast_forward_button = tk.Radiobutton(radio_frame, text="Fast Forward (not recommend)", variable=self.push_option_var, value="Fast Forward")
-        fast_forward_button.grid(row=0, column=1, padx=10)
-
         # Create a Text widget to display the output
         global text_widget_push
         text_widget_push = tk.Text(push_frame, height=30, width=60)
@@ -133,8 +122,34 @@ class UATProdOperations:
         # Set the Text widget to use the Scrollbar
         text_widget_push.config(yscrollcommand=scrollbar.set)
 
-        # Create a Button to run the git push command
-        push_button = tk.Button(push_frame, text="Run git push", command=self.run_push_command)
-        push_button.pack(side=tk.TOP, pady=20)
+        # Create a frame for radio buttons
+        radio_frame = tk.Frame(push_frame)
+        radio_frame.pack(side=tk.TOP, pady=10)
 
+        # Radio buttons
+        self.push_option_var = tk.StringVar()
+        force_button = tk.Radiobutton(radio_frame, text="Force", variable=self.push_option_var, value="Force")
+        force_button.grid(row=0, column=0, padx=10)
+        fast_forward_button = tk.Radiobutton(radio_frame, text="Fast Forward (not recommend)", variable=self.push_option_var, value="Fast Forward")
+        fast_forward_button.grid(row=0, column=1, padx=10)
+
+        # Create a frame for the buttons
+        button_frame = tk.Frame(push_frame)
+        button_frame.pack(side=tk.TOP, pady=20)
+
+        # Create a Button to run the git push command for UAT
+        push_uat_button = tk.Button(button_frame, text="Push to UAT", command=lambda: self.run_push_command("uat"))
+        push_uat_button.pack(side=tk.LEFT, padx=10)
+
+        # Create a Button to run the git push command for Prod
+        push_prod_button = tk.Button(button_frame, text="Push to Prod", command=lambda: self.run_push_command("prod"))
+        push_prod_button.pack(side=tk.LEFT, padx=10)
+
+    # ... (rest of the code)
+    
+        self.notebook.add(push_frame, text="Push to UAT/PROD")
+
+
+        # ... (rest of the code)
+        
         self.notebook.add(push_frame, text="Push to UAT/PROD")
