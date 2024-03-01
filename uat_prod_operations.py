@@ -12,7 +12,7 @@ class UATProdOperations:
     def run_push_command(self, target):
         try:
             selected_folder = self.folder_var.get()
-            self.append_text(f"*********** Starting: {selected_folder}*********** ")
+            self.append_text(f"*********** Starting: {selected_folder} to {target}*********** ")
             selected_option = self.push_option_var.get()  # Get the selected radio button option
 
             if selected_folder:
